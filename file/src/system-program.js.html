@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../">
+  <title data-ice="title">src/system-program.js | Solana Javascript API</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  <script src="script/manual.js"></script>
+<meta name="description" content="Solana Javascript API"><meta property="twitter:card" content="summary"><meta property="twitter:title" content="Solana Javascript API"><meta property="twitter:description" content="Solana Javascript API"></head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+<a style="position:relative; top:3px;" href="https://github.com/solana-labs/solana-web3.js"><img width="20px" src="./image/github.png"></a></header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/account.js~Account.html">Account</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/budget-program.js~BudgetProgram.html">BudgetProgram</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/connection.js~Connection.html">Connection</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/system-program.js~SystemProgram.html">SystemProgram</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/transaction.js~Transaction.html">Transaction</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-PublicKey">PublicKey</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-BudgetCondition">BudgetCondition</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-Payment">Payment</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-SignatureCondition">SignatureCondition</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-TimeStampCondition">TimeStampCondition</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-AccountInfo">AccountInfo</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-SignatureStatus">SignatureStatus</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-TransactionCtorFields">TransactionCtorFields</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-TransactionId">TransactionId</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-TransactionSignature">TransactionSignature</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/system-program.js</h1>
+<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">// @flow
+
+import assert from &apos;assert&apos;;
+
+import {Transaction} from &apos;./transaction&apos;;
+import type {PublicKey} from &apos;./account&apos;;
+
+/**
+ * Factory class for transactions to interact with the System program
+ */
+export class SystemProgram {
+  /**
+   * Public key that identifies the System program
+   */
+  static get programId(): PublicKey {
+    return &apos;11111111111111111111111111111111&apos;;
+  }
+
+  /**
+   * Generate a Transaction that creates a new account
+   */
+  static createAccount(
+    from: PublicKey,
+    newAccount: PublicKey,
+    tokens: number,
+    space: number,
+    programId: PublicKey
+  ): Transaction {
+    const userdata = Buffer.alloc(4 + 8 + 8 + 1 + 32);
+    let pos = 0;
+
+    userdata.writeUInt32LE(0, pos); // Create Account instruction
+    pos += 4;
+
+    userdata.writeUInt32LE(tokens, pos); // tokens as i64
+    pos += 8;
+
+    userdata.writeUInt32LE(space, pos); // space as u64
+    pos += 8;
+
+    const programIdBytes = Transaction.serializePublicKey(programId);
+    programIdBytes.copy(userdata, pos);
+    pos += 32;
+
+    assert(pos &lt;= userdata.length);
+
+    return new Transaction({
+      fee: 0,
+      keys: [from, newAccount],
+      programId: SystemProgram.programId,
+      userdata,
+    });
+  }
+
+  /**
+   * Generate a Transaction that moves tokens from one account to another
+   */
+  static move(from: PublicKey, to: PublicKey, amount: number): Transaction {
+    const userdata = Buffer.alloc(4 + 8);
+    let pos = 0;
+    userdata.writeUInt32LE(2, pos); // Move instruction
+    pos += 4;
+
+    userdata.writeUInt32LE(amount, pos); // amount as u64
+    pos += 8;
+
+    assert(pos === userdata.length);
+
+    return new Transaction({
+      fee: 0,
+      keys: [from, to],
+      programId: SystemProgram.programId,
+      userdata,
+    });
+  }
+
+  /**
+   * Generate a Transaction that assigns an account to a program
+   */
+  static assign(from: PublicKey, programId: PublicKey): Transaction {
+    const userdata = Buffer.alloc(4 + 32);
+    let pos = 0;
+
+    userdata.writeUInt32LE(1, pos); // Assign instruction
+    pos += 4;
+
+    const programIdBytes = Transaction.serializePublicKey(programId);
+    programIdBytes.copy(userdata, pos);
+    pos += programIdBytes.length;
+
+    assert(pos === userdata.length);
+
+    return new Transaction({
+      fee: 0,
+      keys: [from],
+      programId: SystemProgram.programId,
+      userdata,
+    });
+  }
+}
+</code></pre>
+
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(1.1.0)</span><img src="./image/esdoc-logo-mini-black.png"></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>

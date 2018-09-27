@@ -1,0 +1,32 @@
+{
+  "coverage": "100%",
+  "expectCount": 57,
+  "actualCount": 57,
+  "files": {
+    "src/account.js": {
+      "expectCount": 5,
+      "actualCount": 5,
+      "undocumentLines": []
+    },
+    "src/budget-program.js": {
+      "expectCount": 12,
+      "actualCount": 12,
+      "undocumentLines": []
+    },
+    "src/connection.js": {
+      "expectCount": 23,
+      "actualCount": 23,
+      "undocumentLines": []
+    },
+    "src/system-program.js": {
+      "expectCount": 5,
+      "actualCount": 5,
+      "undocumentLines": []
+    },
+    "src/transaction.js": {
+      "expectCount": 12,
+      "actualCount": 12,
+      "undocumentLines": []
+    }
+  }
+}

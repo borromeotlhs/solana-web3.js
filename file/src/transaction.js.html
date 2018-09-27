@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../">
+  <title data-ice="title">src/transaction.js | Solana Javascript API</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  <script src="script/manual.js"></script>
+<meta name="description" content="Solana Javascript API"><meta property="twitter:card" content="summary"><meta property="twitter:title" content="Solana Javascript API"><meta property="twitter:description" content="Solana Javascript API"></head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+<a style="position:relative; top:3px;" href="https://github.com/solana-labs/solana-web3.js"><img width="20px" src="./image/github.png"></a></header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/account.js~Account.html">Account</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/budget-program.js~BudgetProgram.html">BudgetProgram</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/connection.js~Connection.html">Connection</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/system-program.js~SystemProgram.html">SystemProgram</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/transaction.js~Transaction.html">Transaction</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-PublicKey">PublicKey</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-BudgetCondition">BudgetCondition</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-Payment">Payment</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-SignatureCondition">SignatureCondition</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-TimeStampCondition">TimeStampCondition</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-AccountInfo">AccountInfo</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-SignatureStatus">SignatureStatus</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-TransactionCtorFields">TransactionCtorFields</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-TransactionId">TransactionId</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-typedef">T</span><span data-ice="name"><span><a href="typedef/index.html#static-typedef-TransactionSignature">TransactionSignature</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/transaction.js</h1>
+<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">// @flow
+
+import assert from &apos;assert&apos;;
+import nacl from &apos;tweetnacl&apos;;
+import bs58 from &apos;bs58&apos;;
+
+import type {Account, PublicKey} from &apos;./account&apos;;
+
+/**
+ * @typedef {string} TransactionSignature
+ */
+export type TransactionSignature = string;
+
+/**
+ * @typedef {string} TransactionId
+ */
+export type TransactionId = string;
+
+/**
+ * List of Transaction object fields that may be initialized at construction
+ *
+ * @typedef {Object} TransactionCtorFields
+ * @property {?Buffer} signature
+ * @property {?Array&lt;PublicKey&gt;} keys
+ * @property {?PublicKey} programId
+ * @property {?number} fee
+ * @property {?Buffer} userdata
+ */
+type TransactionCtorFields = {|
+  signature?: Buffer;
+  keys?: Array&lt;PublicKey&gt;;
+  programId?: PublicKey;
+  fee?: number;
+  userdata?: Buffer;
+|};
+
+/**
+ * Mirrors the Transaction struct in src/transaction.rs
+ */
+export class Transaction {
+
+  /**
+   * Current signature of the transaction.  Typically created by invoking the
+   * `sign()` method
+   */
+  signature: ?Buffer;
+
+  /**
+   * Public keys to include in this transaction
+   */
+  keys: Array&lt;PublicKey&gt; = [];
+
+  /**
+   * Program Id to execute
+   */
+  programId: ?PublicKey;
+
+  /**
+   * A recent transaction id.  Must be populated by the caller
+   */
+  lastId: ?TransactionId;
+
+  /**
+   * Fee for this transaction
+   */
+  fee: number = 0;
+
+  /**
+   * Program input
+   */
+  userdata: Buffer = Buffer.alloc(0);
+
+  constructor(opts?: TransactionCtorFields) {
+    opts &amp;&amp; Object.assign(this, opts);
+  }
+
+  /**
+   * @private
+   */
+  _getSignData(): Buffer {
+    const {lastId} = this;
+    if (!lastId) {
+      throw new Error(&apos;Transaction lastId required&apos;);
+    }
+
+    // Start with a Buffer that should be large enough to fit any Transaction
+    const transactionData = Buffer.alloc(2048);
+
+    let pos = 0;
+
+    // serialize `this.keys`
+    transactionData.writeUInt32LE(this.keys.length, pos);  // u64
+    pos += 8;
+    for (let key of this.keys) {
+      const keyBytes = Transaction.serializePublicKey(key);
+      keyBytes.copy(transactionData, pos);
+      pos += 32;
+    }
+
+    // serialize `this.programId`
+    if (this.programId) {
+      const keyBytes = Transaction.serializePublicKey(this.programId);
+      keyBytes.copy(transactionData, pos);
+    }
+    pos += 32;
+
+    // serialize `this.lastId`
+    {
+      const lastIdBytes = Buffer.from(bs58.decode(lastId));
+      assert(lastIdBytes.length === 32);
+      lastIdBytes.copy(transactionData, pos);
+      pos += 32;
+    }
+
+    // serialize `this.fee`
+    transactionData.writeUInt32LE(this.fee, pos);        // u64
+    pos += 8;
+
+    // serialize `this.userdata`
+    if (this.userdata.length &gt; 0) {
+      transactionData.writeUInt32LE(this.userdata.length, pos);  // u64
+      pos += 8;
+      this.userdata.copy(transactionData, pos);
+      pos += this.userdata.length;
+    }
+
+    return transactionData.slice(0, pos);
+  }
+
+  /**
+   * Sign the Transaction with the specified account
+   *
+   * The Transaction must be assigned a valid `lastId` before invoking this method
+   */
+  sign(from: Account) {
+    const transactionData = this._getSignData();
+    this.signature = nacl.sign.detached(transactionData, from.secretKey);
+    assert(this.signature.length === 64);
+  }
+
+  /**
+   * Serialize the Transaction in the wire format.
+   *
+   * The Transaction must have a valid `signature` before invoking this method
+   */
+  serialize(): Buffer {
+    const {signature} = this;
+    if (!signature) {
+      throw new Error(&apos;Transaction has not been signed&apos;);
+    }
+
+    const transactionData = this._getSignData();
+    const wireTransaction = Buffer.alloc(
+      signature.length + transactionData.length
+    );
+
+    Buffer.from(signature).copy(wireTransaction, 0);
+    transactionData.copy(wireTransaction, signature.length);
+    return wireTransaction;
+  }
+
+  /**
+   * Serializes a public key into the wire format
+   */
+  static serializePublicKey(key: PublicKey): Buffer {
+    const data = Buffer.from(bs58.decode(key));
+    assert(data.length === 32);
+    return data;
+  }
+}
+
+</code></pre>
+
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(1.1.0)</span><img src="./image/esdoc-logo-mini-black.png"></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>
